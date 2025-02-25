@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+markdown
+# Descripción del Proyecto
 
-## Getting Started
+Este proyecto estudiantil surge de la necesidad de mejorar la coordinación y comunicación dentro de un grupo de trabajo numeroso.  Identificamos que la falta de coordinación efectiva impacta negativamente la productividad y la calidad del trabajo colaborativo.
 
-First, run the development server:
+**Objetivo:**
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+El objetivo principal de este proyecto es proporcionar una solución que facilite la coordinación, la comunicación y el seguimiento de las tareas entre los miembros del grupo. Buscamos minimizar los problemas derivados de una mala coordinación y potenciar el trabajo en equipo.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Problemática:**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+La mala coordinación en grupos grandes genera:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+*   Duplicación de esfuerzos.
+*   Desconocimiento del estado de las tareas.
+*   Dificultades para asignar responsabilidades.
+*   Retrasos en la entrega.
+*   Confusión sobre los objetivos y el progreso general del proyecto.
 
-## Learn More
+**Solución:**
 
-To learn more about Next.js, take a look at the following resources:
+Este proyecto desarrollará una plataforma que permitirá:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*   Asignar tareas de forma clara.
+*   Comunicar el progreso y las actualizaciones.
+*   Centralizar la información relevante.
+*   Facilitar la comunicación entre los miembros.
+*   Obtener una visión general del estado del proyecto.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**Alcance:**
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El proyecto se enfocará en resolver los problemas de coordinación dentro de nuestro grupo de trabajo estudiantil, por lo que se adaptará a nuestras necesidades específicas. Se considerará la posibilidad de escalabilidad en un futuro.
