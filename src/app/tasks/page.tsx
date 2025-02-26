@@ -95,14 +95,13 @@ export default function Tasks() {
   const [groups] = useState<Group[]>(initialGroups)
   const [open, setOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [editingSubTask, setEditingSubTask] = useState<{ taskId: number; subTaskId: number } | null>(null);
   const [newTask, setNewTask] = useState<Omit<Task, "id" | "subTasks" | "isCompleted">>({
     title: "",
     groupId: 0,
     dueDate: "",
   })
   const [newSubTasks, setNewSubTasks] = useState<Omit<SubTask, "id">[]>([])
-
-  const [editingSubTask, setEditingSubTask] = useState<{ taskId: number; subTaskId: number } | null>(null)
 
   useEffect(() => {
     if (newTask.groupId === 0 && groups.length > 0) {
@@ -143,25 +142,48 @@ export default function Tasks() {
             ? {
                 ...task,
                 ...newTask,
-                subTasks: newSubTasks.map((subTask, index) => ({
-                  ...subTask,
-                  id: (subTask as any).id || task.subTasks.length + index + 1,
-                  isCompleted: subTask.isCompleted || false,
-                })),
+                subTasks: newSubTasks.map((subTask, index) => {
+                  // Si estamos editando una subtarea específica
+                  if (editingSubTask && task.id === editingSubTask.taskId) {
+                    const existingSubTask = task.subTasks.find(st => st.id === editingSubTask.subTaskId);
+                    if (existingSubTask) {
+                      return {
+                        ...subTask,
+                        id: existingSubTask.id,
+                        isCompleted: subTask.isCompleted || false,
+                      }
+                    }
+                  }
+                  // Para nuevas subtareas o subtareas no editadas
+                  const existingSubTask = task.subTasks[index];
+                  return {
+                    ...subTask,
+                    id: existingSubTask?.id || task.subTasks.length + index + 1,
+                    isCompleted: subTask.isCompleted || false,
+                  }
+                }),
               }
-            : task,
+            : task
         )
         setTasks(updatedTasks)
       } else {
         const newTaskWithSubTasks: Task = {
           ...newTask,
           id: tasks.length + 1,
-          subTasks: newSubTasks.map((subTask, index) => ({ ...subTask, id: index + 1, isCompleted: false })),
           isCompleted: false,
+          subTasks: newSubTasks.map((subTask, index) => ({
+            ...subTask,
+            id: index + 1,
+            isCompleted: false
+          }))
         }
         setTasks([...tasks, newTaskWithSubTasks])
       }
-      handleClose()
+      setEditingTask(null)
+      setEditingSubTask(null)
+      setNewTask({ title: "", groupId: groups[0]?.id || 0, dueDate: "" })
+      setNewSubTasks([])
+      setOpen(false)
     }
   }
 
