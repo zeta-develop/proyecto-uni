@@ -1,10 +1,11 @@
-import './globals.css'
 import type React from "react"
+import { ThemeProvider } from "./theme-provider"
 import ClientLayout from "./ClientLayout"
+import "./globals.css"
 
 export const metadata = {
-  title: "Sistema de Gestión Estudiantil",
-  description: "Gestiona grupos de estudiantes y tareas",
+  title: "ProActiva - Sistema de Gestión Estudiantil",
+  description: "Gestiona grupos de estudiantes y tareas de manera eficiente",
 }
 
 export default function RootLayout({
@@ -12,6 +13,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  return <ClientLayout>{children}</ClientLayout>
+  return (
+    <html lang="es" suppressHydrationWarning>
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ClientLayout>{children}</ClientLayout>
+        </ThemeProvider>
+      </body>
+    </html>
+  )
 }
 

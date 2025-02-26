@@ -1,130 +1,84 @@
 "use client"
 
 import type React from "react"
-import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter"
-import { ThemeProvider, createTheme, useTheme } from "@mui/material/styles"
-import CssBaseline from "@mui/material/CssBaseline"
-import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Container,
-  Box,
-  IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  useMediaQuery,
-} from "@mui/material"
-import Link from "next/link"
-import { School, Group, Assignment, Menu } from "@mui/icons-material"
 import { useState } from "react"
-import MobileTabBar from "../components/MobileTabBar"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { School, Menu } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import MobileTabBar from "./components/MobileTabBar"
 
-const theme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: {
-      main: "#90caf9",
-    },
-    secondary: {
-      main: "#f48fb1",
-    },
-    background: {
-      default: "#121212",
-      paper: "#1e1e1e",
-    },
-  },
-})
+const menuItems = [
+  { text: "Inicio", href: "/" },
+  { text: "Grupos", href: "/groups" },
+  { text: "Tareas", href: "/tasks" },
+  { text: "Chat", href: "/chat" },
+  { text: "Configuración", href: "/configuracion" },
+]
 
 export default function ClientLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-
-  const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
-    if (
-      event.type === "keydown" &&
-      ((event as React.KeyboardEvent).key === "Tab" || (event as React.KeyboardEvent).key === "Shift")
-    ) {
-      return
-    }
-    setDrawerOpen(open)
-  }
-
-  const menuItems = [
-    { text: "Inicio", icon: <School />, href: "/" },
-    { text: "Grupos", icon: <Group />, href: "/groups" },
-    { text: "Tareas", icon: <Assignment />, href: "/tasks" },
-  ]
+  const [open, setOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
-    <html lang="es">
-      <body>
-        <AppRouterCacheProvider>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-              <AppBar position="static" color="default" elevation={0}>
-                <Toolbar>
-                  {!isMobile && (
-                    <IconButton
-                      edge="start"
-                      color="inherit"
-                      aria-label="menu"
-                      onClick={toggleDrawer(true)}
-                      sx={{ mr: 2 }}
-                    >
-                      <Menu />
-                    </IconButton>
-                  )}
-                  <School sx={{ mr: 2 }} />
-                  <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                    SGE
-                  </Typography>
-                </Toolbar>
-              </AppBar>
-              <Drawer anchor="left" open={drawerOpen} onClose={toggleDrawer(false)}>
-                <Box
-                  sx={{ width: 250 }}
-                  role="presentation"
-                  onClick={toggleDrawer(false)}
-                  onKeyDown={toggleDrawer(false)}
-                >
-                  <List>
-                    {menuItems.map((item) => (
-                      <ListItem key={item.text} component={Link} href={item.href}>
-                        <ListItemIcon>{item.icon}</ListItemIcon>
-                        <ListItemText primary={item.text} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Box>
-              </Drawer>
-              <Container component="main" sx={{ mt: 4, mb: isMobile ? 7 : 4, flexGrow: 1 }}>
-                <Box sx={{ backgroundColor: "background.paper", p: { xs: 2, sm: 3 }, borderRadius: 2 }}>{children}</Box>
-              </Container>
-              {isMobile && <MobileTabBar />}
-              {!isMobile && (
-                <Box component="footer" sx={{ py: 3, px: 2, mt: "auto", backgroundColor: "background.paper" }}>
-                  <Container maxWidth="sm">
-                    <Typography variant="body2" color="text.secondary" align="center">
-                      © {new Date().getFullYear()} SGE
-                    </Typography>
-                  </Container>
-                </Box>
-              )}
-            </Box>
-          </ThemeProvider>
-        </AppRouterCacheProvider>
-      </body>
-    </html>
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-14 items-center">
+          <Sheet open={open} onOpenChange={setOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Menu</SheetTitle>
+                <SheetDescription>Navegue por las diferentes secciones de ProActiva</SheetDescription>
+              </SheetHeader>
+              <nav className="flex flex-col space-y-4 mt-4">
+                {menuItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`text-sm font-medium transition-colors hover:text-primary ${
+                      pathname === item.href ? "text-primary" : "text-muted-foreground"
+                    }`}
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.text}
+                  </Link>
+                ))}
+              </nav>
+            </SheetContent>
+          </Sheet>
+          <div className="flex items-center space-x-2 md:space-x-4">
+            <School className="h-6 w-6" />
+            <span className="font-bold text-lg">ProActiva</span>
+          </div>
+          <nav className="mx-6 flex items-center space-x-4 lg:space-x-6 hidden md:block">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-sm font-medium transition-colors hover:text-primary ${
+                  pathname === item.href ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {item.text}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </header>
+      <main className="flex-1 pb-16 md:pb-0">{children}</main>
+      <MobileTabBar />
+    </div>
   )
 }
 

@@ -1,21 +1,25 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import {
-  PlusIcon,
-  CalendarIcon,
-  UserGroupIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline"
+import { Plus, Calendar, Users, Pencil, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Progress } from "@/components/ui/progress"
 
 interface SubTask {
   id: number
   title: string
   assignedTo: string
   isCompleted: boolean
+  dueDate: string
+  startTime: string
+  endTime: string
 }
 
 interface Task {
@@ -66,12 +70,23 @@ export default function Tasks() {
       groupId: 1,
       dueDate: "2023-06-15",
       subTasks: [
-        { id: 1, title: "Investigar qué es un microcontrolador", assignedTo: "Juan Pérez", isCompleted: false },
+        {
+          id: 1,
+          title: "Investigar qué es un microcontrolador",
+          assignedTo: "Juan Pérez",
+          isCompleted: false,
+          dueDate: "2023-06-10",
+          startTime: "08:00",
+          endTime: "10:00",
+        },
         {
           id: 2,
           title: "Investigar para qué se usa un microcontrolador",
           assignedTo: "María García",
           isCompleted: false,
+          dueDate: "2023-06-12",
+          startTime: "14:00",
+          endTime: "16:00",
         },
       ],
       isCompleted: false,
@@ -86,7 +101,8 @@ export default function Tasks() {
     dueDate: "",
   })
   const [newSubTasks, setNewSubTasks] = useState<Omit<SubTask, "id">[]>([])
-  const [expandedTask, setExpandedTask] = useState<number | null>(null)
+
+  const [editingSubTask, setEditingSubTask] = useState<{ taskId: number; subTaskId: number } | null>(null)
 
   useEffect(() => {
     if (newTask.groupId === 0 && groups.length > 0) {
@@ -107,11 +123,16 @@ export default function Tasks() {
     setOpen(true)
   }
 
-  const handleClose = () => {
-    setOpen(false)
-    setEditingTask(null)
-    setNewTask({ title: "", groupId: groups[0]?.id || 0, dueDate: "" })
-    setNewSubTasks([])
+  const handleEditSubTask = (taskId: number, subTaskId: number) => {
+    const task = tasks.find((t) => t.id === taskId)
+    const subTask = task?.subTasks.find((st) => st.id === subTaskId)
+    if (task && subTask) {
+      setEditingTask(task)
+      setNewTask({ title: task.title, groupId: task.groupId, dueDate: task.dueDate })
+      setNewSubTasks(task.subTasks.map((st) => ({ ...st, id: st.id })))
+      setEditingSubTask({ taskId, subTaskId })
+      setOpen(true)
+    }
   }
 
   const handleSaveTask = () => {
@@ -122,9 +143,9 @@ export default function Tasks() {
             ? {
                 ...task,
                 ...newTask,
-                subTasks: newSubTasks.map((subTask, index) => ({
+                subTasks: newSubTasks.map((subTask) => ({
                   ...subTask,
-                  id: index + 1,
+                  id: subTask.id || task.subTasks.length + 1,
                   isCompleted: subTask.isCompleted || false,
                 })),
               }
@@ -145,7 +166,17 @@ export default function Tasks() {
   }
 
   const handleAddSubTask = () => {
-    setNewSubTasks([...newSubTasks, { title: "", assignedTo: "", isCompleted: false }])
+    setNewSubTasks([
+      ...newSubTasks,
+      {
+        title: "",
+        assignedTo: "",
+        isCompleted: false,
+        dueDate: "",
+        startTime: "",
+        endTime: "",
+      },
+    ])
   }
 
   const handleSubTaskChange = (index: number, field: keyof SubTask, value: string | boolean) => {
@@ -155,10 +186,6 @@ export default function Tasks() {
 
   const handleRemoveSubTask = (index: number) => {
     setNewSubTasks(newSubTasks.filter((_, i) => i !== index))
-  }
-
-  const handleExpandTask = (taskId: number) => {
-    setExpandedTask(expandedTask === taskId ? null : taskId)
   }
 
   const handleToggleTaskCompletion = (taskId: number) => {
@@ -179,193 +206,199 @@ export default function Tasks() {
     )
   }
 
+  const getTaskProgress = (task: Task) => {
+    const completedSubTasks = task.subTasks.filter((st) => st.isCompleted).length
+    return (completedSubTasks / task.subTasks.length) * 100
+  }
+
+  const handleClose = () => {
+    setOpen(false)
+    setEditingTask(null)
+    setEditingSubTask(null)
+    setNewTask({ title: "", groupId: groups[0]?.id || 0, dueDate: "" })
+    setNewSubTasks([])
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Tareas</h1>
+    <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
+      <h1 className="text-4xl font-bold mb-6 text-primary">ProActiva: Gestión de Tareas</h1>
 
-      <ul className="space-y-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {tasks.map((task) => (
-          <li key={task.id} className="bg-white shadow-md rounded-lg overflow-hidden">
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold">{task.title}</h2>
-                <div className="flex items-center mt-2 space-x-2">
-                  <span className="flex items-center text-sm text-gray-600">
-                    <UserGroupIcon className="h-4 w-4 mr-1" />
-                    {groups.find((g) => g.id === task.groupId)?.name || "Grupo no encontrado"}
-                  </span>
-                  <span className="flex items-center text-sm text-gray-600">
-                    <CalendarIcon className="h-4 w-4 mr-1" />
-                    {task.dueDate}
-                  </span>
+          <Card key={task.id} className="overflow-hidden transition-shadow hover:shadow-lg">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg sm:text-xl">{task.title}</CardTitle>
+                <Checkbox checked={task.isCompleted} onCheckedChange={() => handleToggleTaskCompletion(task.id)} />
+              </div>
+              <CardDescription asChild>
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <Users className="h-4 w-4" />
+                  <span>{groups.find((g) => g.id === task.groupId)?.name || "Grupo no encontrado"}</span>
+                  <Calendar className="h-4 w-4" />
+                  <span>{task.dueDate}</span>
                 </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <label className="inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={task.isCompleted}
-                    onChange={() => handleToggleTaskCompletion(task.id)}
-                    className="form-checkbox h-5 w-5 text-blue-600"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{task.isCompleted ? "Completada" : "Pendiente"}</span>
-                </label>
-                <button onClick={() => handleClickOpen(task)} className="text-blue-600 hover:text-blue-800">
-                  <PencilIcon className="h-5 w-5" />
-                </button>
-                <button onClick={() => handleExpandTask(task.id)} className="text-gray-600 hover:text-gray-800">
-                  {expandedTask === task.id ? (
-                    <ChevronUpIcon className="h-5 w-5" />
-                  ) : (
-                    <ChevronDownIcon className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-            {expandedTask === task.id && (
-              <div className="bg-gray-50 p-4 border-t">
-                <h3 className="font-semibold mb-2">Subtareas:</h3>
-                <ul className="space-y-2">
-                  {task.subTasks.map((subTask) => (
-                    <li key={subTask.id} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{subTask.title}</p>
-                        <p className="text-sm text-gray-600">Asignado a: {subTask.assignedTo}</p>
-                      </div>
-                      <label className="inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={subTask.isCompleted}
-                          onChange={() => handleToggleSubTaskCompletion(task.id, subTask.id)}
-                          className="form-checkbox h-5 w-5 text-blue-600"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">
-                          {subTask.isCompleted ? "Completada" : "Pendiente"}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      <button
-        onClick={() => handleClickOpen()}
-        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
-      >
-        <PlusIcon className="h-5 w-5 mr-2" />
-        Crear Nueva Tarea
-      </button>
-
-      {open && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full">
-            <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">{editingTask ? "Editar Tarea" : "Crear Nueva Tarea"}</h2>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-                    Título de la Tarea
-                  </label>
-                  <input
-                    type="text"
-                    id="title"
-                    value={newTask.title}
-                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="group" className="block text-sm font-medium text-gray-700">
-                      Grupo
-                    </label>
-                    <select
-                      id="group"
-                      value={newTask.groupId}
-                      onChange={(e) => setNewTask({ ...newTask, groupId: Number(e.target.value) })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                    >
-                      {groups.map((group) => (
-                        <option key={group.id} value={group.id}>
-                          {group.name}
-                        </option>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Progress value={getTaskProgress(task)} className="mb-2" />
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value={`task-${task.id}`}>
+                  <AccordionTrigger>Ver Subtareas</AccordionTrigger>
+                  <AccordionContent>
+                    <ul className="space-y-2">
+                      {task.subTasks.map((subTask) => (
+                        <li key={subTask.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
+                          <div className="flex items-center space-x-2 flex-grow">
+                            <Checkbox
+                              checked={subTask.isCompleted}
+                              onCheckedChange={() => handleToggleSubTaskCompletion(task.id, subTask.id)}
+                            />
+                            <span className={`${subTask.isCompleted ? "line-through" : ""} text-sm`}>
+                              {subTask.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <span className="text-xs text-muted-foreground">{subTask.dueDate}</span>
+                            <Button variant="ghost" size="icon" onClick={() => handleEditSubTask(task.id, subTask.id)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </li>
                       ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
-                      Fecha de Entrega
-                    </label>
-                    <input
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+              <div className="flex justify-end mt-4">
+                <Button variant="outline" size="sm" onClick={() => handleClickOpen(task)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Editar Tarea
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button
+            onClick={() => handleClickOpen()}
+            className="fixed bottom-20 right-4 z-40 shadow-lg md:static md:mt-6"
+            size="lg"
+          >
+            <Plus className="mr-2 h-5 w-5" /> Nueva Tarea
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTask ? "Editar Tarea" : "Crear Nueva Tarea"}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="title" className="text-right">
+                Título
+              </Label>
+              <Input
+                id="title"
+                value={newTask.title}
+                onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="group" className="text-right">
+                Grupo
+              </Label>
+              <Select
+                value={newTask.groupId.toString()}
+                onValueChange={(value) => setNewTask({ ...newTask, groupId: Number(value) })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecciona un grupo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((group) => (
+                    <SelectItem key={group.id} value={group.id.toString()}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="dueDate" className="text-right">
+                Fecha de Entrega
+              </Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={newTask.dueDate}
+                onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
+                className="col-span-3"
+              />
+            </div>
+            <div className="space-y-2 max-h-[40vh] overflow-y-auto">
+              <Label>Subtareas</Label>
+              {newSubTasks.map((subTask, index) => (
+                <div key={index} className="space-y-2 p-4 bg-muted rounded-md">
+                  <Input
+                    placeholder="Título de la Subtarea"
+                    value={subTask.title}
+                    onChange={(e) => handleSubTaskChange(index, "title", e.target.value)}
+                  />
+                  <Select
+                    value={subTask.assignedTo}
+                    onValueChange={(value) => handleSubTaskChange(index, "assignedTo", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Asignar a" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {groups
+                        .find((g) => g.id === newTask.groupId)
+                        ?.members.map((member) => (
+                          <SelectItem key={member.id} value={member.name}>
+                            {member.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Input
                       type="date"
-                      id="dueDate"
-                      value={newTask.dueDate}
-                      onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      value={subTask.dueDate}
+                      onChange={(e) => handleSubTaskChange(index, "dueDate", e.target.value)}
+                    />
+                    <Input
+                      type="time"
+                      value={subTask.startTime}
+                      onChange={(e) => handleSubTaskChange(index, "startTime", e.target.value)}
+                    />
+                    <Input
+                      type="time"
+                      value={subTask.endTime}
+                      onChange={(e) => handleSubTaskChange(index, "endTime", e.target.value)}
                     />
                   </div>
+                  <Button variant="destructive" size="icon" onClick={() => handleRemoveSubTask(index)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <div>
-                  <h3 className="font-semibold mb-2">Subtareas</h3>
-                  {newSubTasks.map((subTask, index) => (
-                    <div key={index} className="flex items-center space-x-2 mb-2">
-                      <input
-                        type="text"
-                        value={subTask.title}
-                        onChange={(e) => handleSubTaskChange(index, "title", e.target.value)}
-                        placeholder="Título de la Subtarea"
-                        className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      />
-                      <select
-                        value={subTask.assignedTo}
-                        onChange={(e) => handleSubTaskChange(index, "assignedTo", e.target.value)}
-                        className="rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                      >
-                        <option value="">Asignar a</option>
-                        {groups
-                          .find((g) => g.id === newTask.groupId)
-                          ?.members.map((member) => (
-                            <option key={member.id} value={member.name}>
-                              {member.name}
-                            </option>
-                          ))}
-                      </select>
-                      <button onClick={() => handleRemoveSubTask(index)} className="text-red-600 hover:text-red-800">
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    onClick={handleAddSubTask}
-                    className="mt-2 text-blue-600 hover:text-blue-800 flex items-center"
-                  >
-                    <PlusIcon className="h-5 w-5 mr-1" />
-                    Agregar Subtarea
-                  </button>
-                </div>
-              </div>
+              ))}
             </div>
-            <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-2 rounded-b-lg">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveTask}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                {editingTask ? "Guardar Cambios" : "Crear Tarea"}
-              </button>
-            </div>
+            <Button variant="outline" onClick={handleAddSubTask} className="w-full">
+              <Plus className="mr-2 h-4 w-4" /> Agregar Subtarea
+            </Button>
           </div>
-        </div>
-      )}
+          <div className="flex justify-end space-x-2 mt-4">
+            <Button variant="outline" onClick={handleClose}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveTask}>{editingTask ? "Guardar Cambios" : "Crear Tarea"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
