@@ -1,13 +1,26 @@
 const withPWA = require('next-pwa')({
   dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
-  disable: false // Cambiamos esto para que funcione en desarrollo también
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'offlineCache',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+        }
+      }
+    }
+  ]
 })
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // tus otras configuraciones de Next.js aquí
+  reactStrictMode: true,
 }
 
 module.exports = withPWA(nextConfig)
