@@ -143,9 +143,9 @@ export default function Tasks() {
             ? {
                 ...task,
                 ...newTask,
-                subTasks: newSubTasks.map((subTask) => ({
+                subTasks: newSubTasks.map((subTask, index) => ({
                   ...subTask,
-                  id: subTask.id || task.subTasks.length + 1,
+                  id: (subTask as any).id || task.subTasks.length + index + 1,
                   isCompleted: subTask.isCompleted || false,
                 })),
               }
@@ -402,4 +402,3 @@ export default function Tasks() {
     </div>
   )
 }
-
