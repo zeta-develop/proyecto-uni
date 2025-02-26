@@ -2,7 +2,6 @@ import type React from "react"
 import { ThemeProvider } from "./theme-provider"
 import ClientLayout from "./ClientLayout"
 import "./globals.css"
-import { icons } from "lucide-react"
 
 export const metadata = {
   title: "ProActiva - Sistema de Gestión Estudiantil",

@@ -231,7 +231,7 @@ export default function Tasks() {
                 <CardTitle className="text-lg sm:text-xl">{task.title}</CardTitle>
                 <Checkbox checked={task.isCompleted} onCheckedChange={() => handleToggleTaskCompletion(task.id)} />
               </div>
-              <CardDescription asChild>
+              <CardDescription >
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <Users className="h-4 w-4" />
                   <span>{groups.find((g) => g.id === task.groupId)?.name || "Grupo no encontrado"}</span>
