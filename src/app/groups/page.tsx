@@ -1,25 +1,31 @@
 "use client"
 
 import { useState } from "react"
-import {
-  Typography,
-  List,
-  ListItem,
-  ListItemText,
-  Button,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Paper,
-  Box,
-  Collapse,
-  IconButton,
-  Chip,
-} from "@mui/material"
-import { Add, ExpandMore, ExpandLess, Login } from "@mui/icons-material"
 import { useRouter } from "next/navigation"
+import { Plus, Users, LogIn, Pencil, Trash } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "@/components/ui/use-toast"
 
 interface User {
   id: number
@@ -33,7 +39,7 @@ interface Group {
   members: User[]
 }
 
-// Función para generar un código aleatorio en formato XXXX-XXXX
+// Function to generate a random code in XXXX-XXXX format
 const generateRandomCode = () => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
   const getRandomChars = (length: number) =>
@@ -62,22 +68,13 @@ export default function Groups() {
       ],
     },
   ])
-  const [open, setOpen] = useState(false)
   const [newGroupName, setNewGroupName] = useState("")
-  const [expandedGroup, setExpandedGroup] = useState<number | null>(null)
   const [joinGroupCode, setJoinGroupCode] = useState("")
-  const [openJoinDialog, setOpenJoinDialog] = useState(false)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false)
   const router = useRouter()
 
-  const handleClickOpen = () => {
-    setOpen(true)
-  }
-
-  const handleClose = () => {
-    setOpen(false)
-  }
-
-  const handleAddGroup = () => {
+  const handleCreateGroup = () => {
     if (newGroupName) {
       const newGroup: Group = {
         id: groups.length + 1,
@@ -87,129 +84,184 @@ export default function Groups() {
       }
       setGroups([...groups, newGroup])
       setNewGroupName("")
-      handleClose()
+      setIsCreateDialogOpen(false)
+      toast({
+        title: "Grupo creado",
+        description: `El grupo "${newGroup.name}" ha sido creado exitosamente.`,
+      })
     }
   }
 
-  const handleExpandGroup = (groupId: number) => {
-    setExpandedGroup(expandedGroup === groupId ? null : groupId)
-  }
-
   const handleJoinGroup = () => {
-    // Aquí iría la lógica para unirse a un grupo
-    console.log("Intentando unirse al grupo con código:", joinGroupCode)
-    setOpenJoinDialog(false)
+    const group = groups.find((g) => g.code === joinGroupCode)
+    if (group) {
+      // Here you would typically add the current user to the group
+      toast({
+        title: "Grupo unido",
+        description: `Te has unido al grupo "${group.name}" exitosamente.`,
+      })
+    } else {
+      toast({
+        title: "Error",
+        description: "No se encontró ningún grupo con ese código.",
+        variant: "destructive",
+      })
+    }
     setJoinGroupCode("")
+    setIsJoinDialogOpen(false)
   }
 
   const handleEnterGroup = (groupId: number) => {
-    // Aquí iría la lógica para entrar en un grupo
-    console.log("Entrando al grupo:", groupId)
+    // Here you would typically navigate to the group's page
     router.push(`/chat?groupId=${groupId}`)
   }
 
   return (
-    <>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ fontSize: { xs: "1.5rem", sm: "2.125rem" } }}>
-        Grupos de Estudiantes
-      </Typography>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold">Grupos de Estudiantes</h1>
+        <div className="flex gap-2">
+          {/* Mobile view: Actions dropdown */}
+          <div className="sm:hidden flex-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Acciones
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                <DropdownMenuItem onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Crear Grupo</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsJoinDialogOpen(true)}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  <span>Unirse a Grupo</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-      <List>
+          {/* Desktop view: Regular buttons */}
+          <div className="hidden sm:flex sm:gap-2">
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crear Grupo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Crear Nuevo Grupo</DialogTitle>
+                  <DialogDescription>
+                    Ingresa el nombre para tu nuevo grupo. Se generará un código único automáticamente.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Nombre
+                    </Label>
+                    <Input
+                      id="name"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleCreateGroup}>Crear Grupo</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Unirse a Grupo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Unirse a un Grupo</DialogTitle>
+                  <DialogDescription>Ingresa el código del grupo al que deseas unirte.</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="code" className="text-right">
+                      Código
+                    </Label>
+                    <Input
+                      id="code"
+                      value={joinGroupCode}
+                      onChange={(e) => setJoinGroupCode(e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleJoinGroup}>Unirse al Grupo</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((group) => (
-          <Paper key={group.id} elevation={2} sx={{ mb: 2, overflow: "hidden" }}>
-            <ListItem
-              secondaryAction={
-                <Box>
-                  <IconButton edge="end" onClick={() => handleExpandGroup(group.id)}>
-                    {expandedGroup === group.id ? <ExpandLess /> : <ExpandMore />}
-                  </IconButton>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<Login />}
-                    onClick={() => handleEnterGroup(group.id)}
-                    sx={{ ml: 1 }}
-                  >
-                    Entrar
-                  </Button>
-                </Box>
-              }
-            >
-              <ListItemText primary={group.name} secondary={`Código: ${group.code}`} />
-            </ListItem>
-            <Collapse in={expandedGroup === group.id} timeout="auto" unmountOnExit>
-              <Box sx={{ p: 2, pl: 4 }}>
-                <Typography variant="subtitle2" gutterBottom>
-                  Miembros:
-                </Typography>
+          <Card key={group.id}>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                {group.name}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Acciones de Grupo</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => handleEnterGroup(group.id)}>
+                      <LogIn className="mr-2 h-4 w-4" />
+                      <span>Entrar al Grupo</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>Editar Grupo</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Trash className="mr-2 h-4 w-4" />
+                      <span>Eliminar Grupo</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </CardTitle>
+              <CardDescription>Código: {group.code}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Label>Miembros:</Label>
+              <ScrollArea className="h-[100px] w-full rounded-md border p-4 mt-2">
                 {group.members.map((member) => (
-                  <Chip key={member.id} label={member.name} sx={{ mr: 1, mb: 1 }} />
+                  <div key={member.id} className="text-sm">
+                    {member.name}
+                  </div>
                 ))}
-                {group.members.length === 0 && (
-                  <Typography variant="body2" color="text.secondary">
-                    No hay miembros en este grupo.
-                  </Typography>
-                )}
-              </Box>
-            </Collapse>
-          </Paper>
+              </ScrollArea>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" onClick={() => handleEnterGroup(group.id)}>
+                <Users className="mr-2 h-4 w-4" />
+                Entrar al Grupo
+              </Button>
+            </CardFooter>
+          </Card>
         ))}
-      </List>
-
-      <Button variant="contained" color="primary" onClick={handleClickOpen} startIcon={<Add />} sx={{ mt: 2, mr: 2 }}>
-        Crear Nuevo Grupo
-      </Button>
-
-      <Button variant="outlined" color="primary" onClick={() => setOpenJoinDialog(true)} sx={{ mt: 2 }}>
-        Unirse a un Grupo
-      </Button>
-
-      <Dialog open={open} onClose={handleClose}>
-        <DialogTitle>Crear Nuevo Grupo</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="name"
-            label="Nombre del Grupo"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newGroupName}
-            onChange={(e) => setNewGroupName(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleClose}>Cancelar</Button>
-          <Button onClick={handleAddGroup} variant="contained" color="primary">
-            Crear
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={openJoinDialog} onClose={() => setOpenJoinDialog(false)}>
-        <DialogTitle>Unirse a un Grupo</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="code"
-            label="Código del Grupo"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={joinGroupCode}
-            onChange={(e) => setJoinGroupCode(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenJoinDialog(false)}>Cancelar</Button>
-          <Button onClick={handleJoinGroup} variant="contained" color="primary">
-            Unirse
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
+      </div>
+    </div>
   )
 }
 

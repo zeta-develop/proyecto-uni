@@ -1,6 +1,4 @@
-import type React from "react"
-import { List, ListItem, ListItemText, Typography, Chip, Box } from "@mui/material"
-import { CalendarToday, Group, Person } from "@mui/icons-material"
+import { CalendarIcon, GroupIcon, UserIcon } from "lucide-react"
 
 interface Task {
   id: number
@@ -11,47 +9,23 @@ interface Task {
 
 interface TaskListProps {
   tasks: Task[]
-  title: string
 }
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, title }) => {
+export function TaskList({ tasks }: TaskListProps) {
   return (
-    <Box sx={{ mb: 4 }}>
-      <Typography variant="h6" component="h2" gutterBottom>
-        {title}
-      </Typography>
-      <List>
-        {tasks.map((task) => (
-          <ListItem
-            key={task.id}
-            sx={{
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "flex-start", sm: "center" },
-              py: 2,
-            }}
-          >
-            <ListItemText
-              primary={task.title}
-              secondary={
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: { xs: 1, sm: 0 } }}>
-                  <Chip
-                    icon={task.assignedTo.startsWith("Grupo") ? <Group /> : <Person />}
-                    label={task.assignedTo}
-                    size="small"
-                  />
-                  <Chip icon={<CalendarToday />} label={task.dueDate} size="small" />
-                </Box>
-              }
-              primaryTypographyProps={{ fontWeight: "medium" }}
-            />
-          </ListItem>
-        ))}
-      </List>
-    </Box>
+    <ul className="space-y-3">
+      {tasks.map((task) => (
+        <li key={task.id} className="border-b pb-2">
+          <p className="font-medium">{task.title}</p>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            {task.assignedTo.startsWith("Grupo") ? <GroupIcon className="h-4 w-4" /> : <UserIcon className="h-4 w-4" />}
+            <span>{task.assignedTo}</span>
+            <CalendarIcon className="h-4 w-4 ml-2" />
+            <span>{task.dueDate}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
   )
 }
-
-export default TaskList
 

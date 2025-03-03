@@ -8,7 +8,6 @@ const navItems = [
   { label: "Inicio", icon: Home, href: "/" },
   { label: "Grupos", icon: Users, href: "/groups" },
   { label: "Tareas", icon: CheckSquare, href: "/tasks" },
-  { label: "Chat", icon: MessageSquare, href: "/chat" },
   { label: "Config", icon: Settings, href: "/configuracion" },
 ]
 

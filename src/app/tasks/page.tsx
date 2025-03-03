@@ -1,16 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Plus, Calendar, Users, Pencil, Trash2 } from "lucide-react"
+import type React from "react"
+
+import { useState, useEffect, useRef } from "react"
+import { Plus, Calendar, Users, Pencil, Trash2, CheckCircle2, User, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface SubTask {
   id: number
@@ -25,10 +36,13 @@ interface SubTask {
 interface Task {
   id: number
   title: string
-  groupId: number
+  groupId: number | null
   dueDate: string
   subTasks: SubTask[]
   isCompleted: boolean
+  isSubmitted: boolean
+  assignedTo: string[]
+  submittedFile?: string
 }
 
 interface GroupMember {
@@ -62,6 +76,9 @@ const initialGroups: Group[] = [
   },
 ]
 
+// Simulamos un usuario actual
+const currentUser = { id: 1, name: "Juan Pérez" }
+
 export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([
     {
@@ -90,18 +107,35 @@ export default function Tasks() {
         },
       ],
       isCompleted: false,
+      isSubmitted: false,
+      assignedTo: ["Juan Pérez", "María García", "Carlos López"],
+    },
+    {
+      id: 2,
+      title: "Reporte Individual de Lectura",
+      groupId: null,
+      dueDate: "2023-06-20",
+      subTasks: [],
+      isCompleted: false,
+      isSubmitted: false,
+      assignedTo: ["Juan Pérez"],
     },
   ])
   const [groups] = useState<Group[]>(initialGroups)
   const [open, setOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
-  const [editingSubTask, setEditingSubTask] = useState<{ taskId: number; subTaskId: number } | null>(null);
-  const [newTask, setNewTask] = useState<Omit<Task, "id" | "subTasks" | "isCompleted">>({
+  const [newTask, setNewTask] = useState<Omit<Task, "id" | "subTasks" | "isCompleted" | "isSubmitted">>({
     title: "",
-    groupId: 0,
+    groupId: null,
     dueDate: "",
+    assignedTo: [],
   })
   const [newSubTasks, setNewSubTasks] = useState<Omit<SubTask, "id">[]>([])
+
+  const [editingSubTask, setEditingSubTask] = useState<{ taskId: number; subTaskId: number } | null>(null)
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
+  const [submittingTaskId, setSubmittingTaskId] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (newTask.groupId === 0 && groups.length > 0) {
@@ -112,11 +146,11 @@ export default function Tasks() {
   const handleClickOpen = (task?: Task) => {
     if (task) {
       setEditingTask(task)
-      setNewTask({ title: task.title, groupId: task.groupId, dueDate: task.dueDate })
+      setNewTask({ title: task.title, groupId: task.groupId, dueDate: task.dueDate, assignedTo: task.assignedTo })
       setNewSubTasks(task.subTasks.map(({ id, ...rest }) => rest))
     } else {
       setEditingTask(null)
-      setNewTask({ title: "", groupId: groups[0]?.id || 0, dueDate: "" })
+      setNewTask({ title: "", groupId: null, dueDate: "", assignedTo: [] })
       setNewSubTasks([])
     }
     setOpen(true)
@@ -127,7 +161,7 @@ export default function Tasks() {
     const subTask = task?.subTasks.find((st) => st.id === subTaskId)
     if (task && subTask) {
       setEditingTask(task)
-      setNewTask({ title: task.title, groupId: task.groupId, dueDate: task.dueDate })
+      setNewTask({ title: task.title, groupId: task.groupId, dueDate: task.dueDate, assignedTo: task.assignedTo })
       setNewSubTasks(task.subTasks.map((st) => ({ ...st, id: st.id })))
       setEditingSubTask({ taskId, subTaskId })
       setOpen(true)
@@ -135,55 +169,33 @@ export default function Tasks() {
   }
 
   const handleSaveTask = () => {
-    if (newTask.title && newTask.groupId && newTask.dueDate) {
+    if (newTask.title && newTask.dueDate) {
       if (editingTask) {
         const updatedTasks = tasks.map((task) =>
           task.id === editingTask.id
             ? {
                 ...task,
                 ...newTask,
-                subTasks: newSubTasks.map((subTask, index) => {
-                  // Si estamos editando una subtarea específica
-                  if (editingSubTask && task.id === editingSubTask.taskId) {
-                    const existingSubTask = task.subTasks.find(st => st.id === editingSubTask.subTaskId);
-                    if (existingSubTask) {
-                      return {
-                        ...subTask,
-                        id: existingSubTask.id,
-                        isCompleted: subTask.isCompleted || false,
-                      }
-                    }
-                  }
-                  // Para nuevas subtareas o subtareas no editadas
-                  const existingSubTask = task.subTasks[index];
-                  return {
-                    ...subTask,
-                    id: existingSubTask?.id || task.subTasks.length + index + 1,
-                    isCompleted: subTask.isCompleted || false,
-                  }
-                }),
+                subTasks: newSubTasks.map((subTask) => ({
+                  ...subTask,
+                  id: subTask.id || task.subTasks.length + 1,
+                  isCompleted: subTask.isCompleted || false,
+                })),
               }
-            : task
+            : task,
         )
         setTasks(updatedTasks)
       } else {
         const newTaskWithSubTasks: Task = {
           ...newTask,
           id: tasks.length + 1,
+          subTasks: newSubTasks.map((subTask, index) => ({ ...subTask, id: index + 1, isCompleted: false })),
           isCompleted: false,
-          subTasks: newSubTasks.map((subTask, index) => ({
-            ...subTask,
-            id: index + 1,
-            isCompleted: false
-          }))
+          isSubmitted: false,
         }
         setTasks([...tasks, newTaskWithSubTasks])
       }
-      setEditingTask(null)
-      setEditingSubTask(null)
-      setNewTask({ title: "", groupId: groups[0]?.id || 0, dueDate: "" })
-      setNewSubTasks([])
-      setOpen(false)
+      handleClose()
     }
   }
 
@@ -228,7 +240,28 @@ export default function Tasks() {
     )
   }
 
+  const handleSubmitTask = (taskId: number) => {
+    setSubmittingTaskId(taskId)
+    setSubmitDialogOpen(true)
+  }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && submittingTaskId) {
+      // Aquí normalmente enviarías el archivo a tu servidor
+      // Por ahora, solo actualizaremos el estado local
+      setTasks(
+        tasks.map((task) =>
+          task.id === submittingTaskId ? { ...task, isSubmitted: true, submittedFile: file.name } : task,
+        ),
+      )
+      setSubmitDialogOpen(false)
+      setSubmittingTaskId(null)
+    }
+  }
+
   const getTaskProgress = (task: Task) => {
+    if (task.subTasks.length === 0) return task.isCompleted ? 100 : 0
     const completedSubTasks = task.subTasks.filter((st) => st.isCompleted).length
     return (completedSubTasks / task.subTasks.length) * 100
   }
@@ -237,70 +270,104 @@ export default function Tasks() {
     setOpen(false)
     setEditingTask(null)
     setEditingSubTask(null)
-    setNewTask({ title: "", groupId: groups[0]?.id || 0, dueDate: "" })
+    setNewTask({ title: "", groupId: null, dueDate: "", assignedTo: [] })
     setNewSubTasks([])
   }
 
-  return (
-    <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
-      <h1 className="text-4xl font-bold mb-6 text-primary">ProActiva: Gestión de Tareas</h1>
+  const renderTaskCard = (task: Task) => (
+    <Card key={task.id} className="overflow-hidden transition-shadow hover:shadow-lg">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg sm:text-xl">{task.title}</CardTitle>
+          <Checkbox checked={task.isCompleted} onCheckedChange={() => handleToggleTaskCompletion(task.id)} />
+        </div>
+        <CardDescription>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {task.groupId ? <Users className="h-4 w-4" /> : <User className="h-4 w-4" />}
+            <span>{task.groupId ? groups.find((g) => g.id === task.groupId)?.name : "Individual"}</span>
+            <Calendar className="h-4 w-4" />
+            <span>{task.dueDate}</span>
+          </div>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Progress value={getTaskProgress(task)} className="mb-2" />
+        {task.subTasks.length > 0 && (
+          <Accordion type="single" collapsible className="w-full mb-2">
+            <AccordionItem value={`task-${task.id}`}>
+              <AccordionTrigger>Ver Subtareas</AccordionTrigger>
+              <AccordionContent>
+                <ul className="space-y-2">
+                  {task.subTasks.map((subTask) => (
+                    <li key={subTask.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
+                      <div className="flex items-center space-x-2 flex-grow">
+                        <Checkbox
+                          checked={subTask.isCompleted}
+                          onCheckedChange={() => handleToggleSubTaskCompletion(task.id, subTask.id)}
+                        />
+                        <span className={`${subTask.isCompleted ? "line-through" : ""} text-sm`}>{subTask.title}</span>
+                      </div>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground">{subTask.dueDate}</span>
+                        <Button variant="ghost" size="icon" onClick={() => handleEditSubTask(task.id, subTask.id)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
+        <div className="flex justify-between items-center mt-2">
+          <Button variant="outline" size="sm" onClick={() => handleClickOpen(task)}>
+            <Pencil className="h-4 w-4 mr-2" /> Editar
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => handleSubmitTask(task.id)}
+            disabled={task.isSubmitted || !task.isCompleted}
+          >
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            {task.isSubmitted ? "Entregada" : "Entregar"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-        {tasks.map((task) => (
-          <Card key={task.id} className="overflow-hidden transition-shadow hover:shadow-lg">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg sm:text-xl">{task.title}</CardTitle>
-                <Checkbox checked={task.isCompleted} onCheckedChange={() => handleToggleTaskCompletion(task.id)} />
-              </div>
-              <CardDescription >
-                <div className="flex flex-wrap items-center gap-2 text-sm">
-                  <Users className="h-4 w-4" />
-                  <span>{groups.find((g) => g.id === task.groupId)?.name || "Grupo no encontrado"}</span>
-                  <Calendar className="h-4 w-4" />
-                  <span>{task.dueDate}</span>
-                </div>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Progress value={getTaskProgress(task)} className="mb-2" />
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value={`task-${task.id}`}>
-                  <AccordionTrigger>Ver Subtareas</AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="space-y-2">
-                      {task.subTasks.map((subTask) => (
-                        <li key={subTask.id} className="flex items-center justify-between bg-muted p-2 rounded-md">
-                          <div className="flex items-center space-x-2 flex-grow">
-                            <Checkbox
-                              checked={subTask.isCompleted}
-                              onCheckedChange={() => handleToggleSubTaskCompletion(task.id, subTask.id)}
-                            />
-                            <span className={`${subTask.isCompleted ? "line-through" : ""} text-sm`}>
-                              {subTask.title}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2 flex-shrink-0">
-                            <span className="text-xs text-muted-foreground">{subTask.dueDate}</span>
-                            <Button variant="ghost" size="icon" onClick={() => handleEditSubTask(task.id, subTask.id)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-              <div className="flex justify-end mt-4">
-                <Button variant="outline" size="sm" onClick={() => handleClickOpen(task)}>
-                  <Pencil className="h-4 w-4 mr-2" /> Editar Tarea
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+  const groupTasks = tasks.filter((task) => task.groupId !== null)
+  const individualTasks = tasks.filter((task) => task.groupId === null)
+  const assignedTasks = tasks.filter((task) => task.assignedTo.includes(currentUser.name))
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-6 text-primary">Tareas</h1>
+
+      <Tabs defaultValue="assigned" className="mb-2">
+        <TabsList className="grid grid-cols-3 gap-2">
+          <TabsTrigger value="assigned">Asignadas</TabsTrigger>
+          <TabsTrigger value="group">Grupales</TabsTrigger>
+          <TabsTrigger value="individual">Individuales</TabsTrigger>
+        </TabsList>
+        <TabsContent value="assigned">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {assignedTasks.map(renderTaskCard)}
+          </div>
+        </TabsContent>
+        <TabsContent value="group">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {groupTasks.map(renderTaskCard)}
+          </div>
+        </TabsContent>
+        <TabsContent value="individual">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            {individualTasks.map(renderTaskCard)}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
@@ -330,24 +397,43 @@ export default function Tasks() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="group" className="text-right">
-                Grupo
+                Tipo
               </Label>
               <Select
-                value={newTask.groupId.toString()}
-                onValueChange={(value) => setNewTask({ ...newTask, groupId: Number(value) })}
+                value={newTask.groupId ? "group" : "individual"}
+                onValueChange={(value) => setNewTask({ ...newTask, groupId: value === "group" ? groups[0]?.id : null })}
               >
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Selecciona un grupo" />
+                  <SelectValue placeholder="Selecciona el tipo de tarea" />
                 </SelectTrigger>
                 <SelectContent>
-                  {groups.map((group) => (
-                    <SelectItem key={group.id} value={group.id.toString()}>
-                      {group.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="group">Grupal</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {newTask.groupId && (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="group" className="text-right">
+                  Grupo
+                </Label>
+                <Select
+                  value={newTask.groupId.toString()}
+                  onValueChange={(value) => setNewTask({ ...newTask, groupId: Number(value) })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecciona un grupo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {groups.map((group) => (
+                      <SelectItem key={group.id} value={group.id.toString()}>
+                        {group.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="dueDate" className="text-right">
                 Fecha de Entrega
@@ -377,13 +463,19 @@ export default function Tasks() {
                       <SelectValue placeholder="Asignar a" />
                     </SelectTrigger>
                     <SelectContent>
-                      {groups
-                        .find((g) => g.id === newTask.groupId)
-                        ?.members.map((member) => (
-                          <SelectItem key={member.id} value={member.name}>
-                            {member.name}
-                          </SelectItem>
-                        ))}
+                      {newTask.groupId
+                        ? groups
+                            .find((g) => g.id === newTask.groupId)
+                            ?.members.map((member) => (
+                              <SelectItem key={member.id} value={member.name}>
+                                {member.name}
+                              </SelectItem>
+                            ))
+                        : [currentUser].map((member) => (
+                            <SelectItem key={member.id} value={member.name}>
+                              {member.name}
+                            </SelectItem>
+                          ))}
                     </SelectContent>
                   </Select>
                   <div className="grid grid-cols-3 gap-2">
@@ -421,6 +513,38 @@ export default function Tasks() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Entregar Tarea</DialogTitle>
+            <DialogDescription>
+              Por favor, sube un archivo PDF, Word o PowerPoint para entregar tu tarea.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="taskFile" className="text-right">
+                Archivo
+              </Label>
+              <Input
+                id="taskFile"
+                type="file"
+                accept=".pdf,.doc,.docx,.ppt,.pptx"
+                onChange={handleFileUpload}
+                ref={fileInputRef}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="mr-2 h-4 w-4" />
+              Subir y Entregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
+
