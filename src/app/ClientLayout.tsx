@@ -14,6 +14,7 @@ const menuItems = [
   { text: "Inicio", href: "/" },
   { text: "Grupos", href: "/groups" },
   { text: "Tareas", href: "/tasks" },
+  { text: "Chat", href: "/chat" },
   { text: "Configuración", href: "/configuracion" },
 ]
 
@@ -29,33 +30,15 @@ export default function ClientLayout({
     setOpen(false)
   }, [])
 
+  // Si la ruta actual es /login, no renderizar el layout
+  if (pathname === "/login") {
+    return <>{children}</>
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center">
-          <Sheet open={open} onOpenChange={setOpen}>
-
-            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle>Menu</SheetTitle>
-                <SheetDescription>Navegue por las diferentes secciones de ProActiva</SheetDescription>
-              </SheetHeader>
-              <nav className="flex flex-col space-y-4 mt-4">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`text-sm font-medium transition-colors hover:text-primary ${
-                      pathname === item.href ? "text-primary" : "text-muted-foreground"
-                    }`}
-                    onClick={handleLinkClick}
-                  >
-                    {item.text}
-                  </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
           <div className="flex items-center space-x-2 md:space-x-4">
             <School className="h-6 w-6 text-primary" />
             <span className="font-bold text-lg">ProActiva</span>
